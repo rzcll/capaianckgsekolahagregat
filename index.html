@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rekapitulasi Data Sekolah</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-school text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">Rekapitulasi Data Sekolah</h1>
+            </div>
+            <div class="text-sm text-slate-500 font-medium hidden sm:block">
+                Sistem Analisis Capaian
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Notification Banner -->
+        <div id="notification" class="hidden mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 shadow-sm">
+            <i class="fa-solid fa-circle-exclamation text-red-500 mt-0.5"></i>
+            <div class="flex-grow">
+                <h3 class="text-sm font-semibold text-red-800">Perhatian</h3>
+                <p id="notificationText" class="text-sm text-red-600 mt-1"></p>
+            </div>
+            <button onclick="closeNotification()" class="text-red-400 hover:text-red-600">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-8 mb-8 text-center upload-area relative overflow-hidden">
+            <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="Klik atau tarik file ke sini">
+            
+            <div class="pointer-events-none">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 text-blue-500 mb-4">
+                    <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                </div>
+                <h2 class="text-lg font-semibold text-slate-700 mb-2">Upload File Rekapitulasi</h2>
+                <p class="text-sm text-slate-500 mb-4 max-w-md mx-auto">Tarik & lepas file Excel Anda ke sini, atau klik area ini untuk memilih file dari perangkat Anda.</p>
+                <div class="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
+                    <span class="bg-slate-100 px-2 py-1 rounded">.xlsx</span>
+                    <span class="bg-slate-100 px-2 py-1 rounded">.xls</span>
+                    <span class="bg-slate-100 px-2 py-1 rounded">.csv</span>
+                </div>
+                <p id="fileNameDisplay" class="mt-4 text-sm font-semibold text-blue-600"></p>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="hidden py-12 flex flex-col items-center justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p class="text-slate-500 font-medium animate-pulse">Memproses data sekolah, mohon tunggu...</p>
+        </div>
+
+        <!-- Dashboard Container -->
+        <div id="dashboardContainer" class="hidden space-y-8">
+            
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- SD Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center gap-4 border-l-4 border-l-red-500">
+                    <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
+                        <i class="fa-solid fa-child text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-slate-500">Total SD/MI</h3>
+                        <p id="countSD" class="text-2xl font-bold text-slate-800">0 Sekolah</p>
+                    </div>
+                </div>
+                
+                <!-- SMP Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center gap-4 border-l-4 border-l-blue-500">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                        <i class="fa-solid fa-user-graduate text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-slate-500">Total SMP/MTS</h3>
+                        <p id="countSMP" class="text-2xl font-bold text-slate-800">0 Sekolah</p>
+                    </div>
+                </div>
+                
+                <!-- SMA Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center gap-4 border-l-4 border-l-slate-600">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0">
+                        <i class="fa-solid fa-graduation-cap text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-slate-500">Total SMA/SMK/MA</h3>
+                        <p id="countSMA" class="text-2xl font-bold text-slate-800">0 Sekolah</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Area -->
+            <div class="grid grid-cols-1 gap-8">
+                <!-- SD Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-1">Grafik Capaian SD/MI</h3>
+                    <p class="text-xs text-slate-500 mb-4">Total capaian tiap sekolah (Kelas 1-6)</p>
+                    <div class="flex-grow min-h-[450px] w-full relative">
+                        <canvas id="sdChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- SMP Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-1">Grafik Capaian SMP/MTS</h3>
+                    <p class="text-xs text-slate-500 mb-4">Total capaian tiap sekolah (Kelas 7-9)</p>
+                    <div class="flex-grow min-h-[450px] w-full relative">
+                        <canvas id="smpChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- SMA Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-1">Grafik Capaian SMA/SMK</h3>
+                    <p class="text-xs text-slate-500 mb-4">Total capaian tiap sekolah (Kelas 10-12)</p>
+                    <div class="flex-grow min-h-[450px] w-full relative">
+                        <canvas id="smaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-800">Rincian Data Sekolah</h3>
+                        <p class="text-sm text-slate-500">Daftar lengkap capaian yang diekstrak dari file</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white text-slate-500 text-xs uppercase tracking-wider">
+                                <th class="py-3 px-6 font-medium border-b border-slate-100 w-16">No</th>
+                                <th class="py-3 px-6 font-medium border-b border-slate-100">Nama Sekolah</th>
+                                <th class="py-3 px-6 font-medium border-b border-slate-100 w-40 text-center">Tingkat</th>
+                                <th class="py-3 px-6 font-medium border-b border-slate-100 text-right w-48">Total Capaian</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="text-sm divide-y divide-slate-100">
+                            <!-- Rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <footer class="bg-slate-50 border-t border-slate-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500">
+            &copy; 2026 Rekapitulasi Data Sekolah.
+        </div>
+    </footer>
+
+    <script>
+        // Registrasi plugin DataLabels agar angka muncul di grafik
+        Chart.register(ChartDataLabels);
+
+        // Chart instances
+        let chartInstances = {
+            sd: null,
+            smp: null,
+            sma: null
+        };
+
+        // DOM Elements (Variables declared globally)
+        let fileInput, fileNameDisplay, loadingIndicator, dashboardContainer, notification, notificationText;
+
+        // Initialize DOM elements and attach event listeners after the HTML is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            fileInput = document.getElementById('excelFile');
+            fileNameDisplay = document.getElementById('fileNameDisplay');
+            loadingIndicator = document.getElementById('loadingIndicator');
+            dashboardContainer = document.getElementById('dashboardContainer');
+            notification = document.getElementById('notification');
+            notificationText = document.getElementById('notificationText');
+
+            // Event Listener for File Upload
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileUpload);
+            } else {
+                console.error("Elemen 'excelFile' belum tersedia di HTML.");
+            }
+        });
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const validExts = ['.xlsx', '.xls', '.csv'];
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (!validExts.includes(fileExt)) {
+                showError("Format file tidak didukung. Harap upload file Excel (.xlsx atau .xls).");
+                return;
+            }
+
+            fileNameDisplay.textContent = `Memproses: ${file.name}`;
+            closeNotification();
+            showLoading();
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                // Use a small timeout to allow UI to render the loading state
+                setTimeout(() => {
+                    processExcelData(data);
+                }, 100);
+            };
+            
+            reader.onerror = function() {
+                showError("Terjadi kesalahan saat membaca file. Silakan coba lagi.");
+                hideLoading();
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseGradeLevel(rawGrade) {
+            if (rawGrade === undefined || rawGrade === null) return 0;
+            
+            let str = String(rawGrade).toUpperCase().trim();
+            
+            // Extract numeric digits if they exist (e.g. "Kelas 10", "12 IPA")
+            const digitsMatch = str.match(/\d+/);
+            if (digitsMatch) {
+                return parseInt(digitsMatch[0], 10);
+            }
+
+            // Fallback for Roman Numerals commonly used in Indonesia
+            str = str.replace(/KELAS|KLS/g, '').trim();
+            
+            // Map of Roman numerals to integers (Reverse order to match XII before X)
+            const romanMap = {
+                'XII': 12, 'XI': 11, 'X': 10, 'IX': 9, 'VIII': 8, 'VII': 7,
+                'VI': 6, 'V': 5, 'IV': 4, 'III': 3, 'II': 2, 'I': 1
+            };
+
+            for (const [roman, num] of Object.entries(romanMap)) {
+                // Exact match or starts/ends with spaces to avoid "V" matching inside another word
+                if (str === roman || str.startsWith(roman + ' ') || str.includes(' ' + roman + ' ') || str.endsWith(' ' + roman)) {
+                    return num;
+                }
+            }
+
+            return 0; // Return 0 if class level cannot be determined
+        }
+
+        function processExcelData(data) {
+            try {
+                // Parse Excel file using SheetJS
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Get first sheet
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Convert to array of arrays, header: 1 guarantees 2D array format
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Data structures for aggregation
+                const sdData = {};  // Kategori Kelas 1-6
+                const smpData = {}; // Kategori Kelas 7-9
+                const smaData = {}; // Kategori Kelas 10-12
+
+                // Process starting from index 1 (Baris ke-2 di Excel)
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length === 0) continue; // Skip empty rows
+
+                    // Kolom I (Index 8), Kolom J (Index 9), Kolom K (Index 10)
+                    const schoolNameRaw = row[8];
+                    const gradeRaw = row[9];
+                    let valueK = parseFloat(row[10]);
+
+                    // Validation: Skip if school name is missing
+                    if (schoolNameRaw === undefined || schoolNameRaw === null || String(schoolNameRaw).trim() === "") {
+                        continue; 
+                    }
+
+                    // Format values
+                    const schoolName = String(schoolNameRaw).trim();
+                    const gradeNum = parseGradeLevel(gradeRaw);
+                    if (isNaN(valueK)) valueK = 0; // Default to 0 if K is empty/invalid
+
+                    // Grouping and aggregating logic
+                    if (gradeNum >= 1 && gradeNum <= 6) {
+                        sdData[schoolName] = (sdData[schoolName] || 0) + valueK;
+                    } else if (gradeNum >= 7 && gradeNum <= 9) {
+                        smpData[schoolName] = (smpData[schoolName] || 0) + valueK;
+                    } else if (gradeNum >= 10 && gradeNum <= 12) {
+                        smaData[schoolName] = (smaData[schoolName] || 0) + valueK;
+                    }
+                }
+
+                // Render UI
+                renderDashboard(sdData, smpData, smaData);
+                hideLoading();
+
+            } catch (error) {
+                console.error(error);
+                showError("Gagal mengurai isi file Excel. Pastikan format kolom sesuai (I=Nama, J=Kelas, K=Angka).");
+                hideLoading();
+            }
+        }
+
+        function renderDashboard(sd, smp, sma) {
+            dashboardContainer.classList.remove('hidden');
+
+            // Mengurutkan data dari tertinggi ke terendah
+            const sortDataDesc = (obj) => {
+                return Object.fromEntries(
+                    Object.entries(obj).sort(([, a], [, b]) => b - a)
+                );
+            };
+
+            const sortedSD = sortDataDesc(sd);
+            const sortedSMP = sortDataDesc(smp);
+            const sortedSMA = sortDataDesc(sma);
+
+            // Update Summary Counters
+            document.getElementById('countSD').textContent = `${Object.keys(sortedSD).length} Sekolah`;
+            document.getElementById('countSMP').textContent = `${Object.keys(sortedSMP).length} Sekolah`;
+            document.getElementById('countSMA').textContent = `${Object.keys(sortedSMA).length} Sekolah`;
+
+            // Draw Charts with colorful and sorted data
+            drawChart('sdChart', 'Capaian Total SD/MI', sortedSD, 'sd');
+            drawChart('smpChart', 'Capaian Total SMP/MTS', sortedSMP, 'smp');
+            drawChart('smaChart', 'Capaian Total SMA/MA/SMK', sortedSMA, 'sma');
+
+            // Render Table with sorted data
+            renderTable(sortedSD, sortedSMP, sortedSMA);
+            
+            // Smooth scroll to dashboard
+            dashboardContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function drawChart(canvasId, label, dataObj, instanceKey) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            // Destroy existing chart if it exists (for re-uploads)
+            if (chartInstances[instanceKey]) {
+                chartInstances[instanceKey].destroy();
+            }
+
+            const labels = Object.keys(dataObj);
+            const data = Object.values(dataObj);
+
+            // Handle empty data state elegantly
+            if (labels.length === 0) {
+                labels.push("Tidak ada data");
+                data.push(0);
+            }
+
+            // Palet warna warni cerah yang menarik
+            const colorPalette = [
+                ['rgba(239, 68, 68, 0.8)', 'rgba(239, 68, 68, 1)'],     // Merah
+                ['rgba(249, 115, 22, 0.8)', 'rgba(249, 115, 22, 1)'],   // Oranye
+                ['rgba(234, 179, 8, 0.8)', 'rgba(234, 179, 8, 1)'],     // Kuning
+                ['rgba(132, 204, 22, 0.8)', 'rgba(132, 204, 22, 1)'],   // Lime
+                ['rgba(34, 197, 94, 0.8)', 'rgba(34, 197, 94, 1)'],     // Hijau
+                ['rgba(20, 184, 166, 0.8)', 'rgba(20, 184, 166, 1)'],   // Teal
+                ['rgba(6, 182, 212, 0.8)', 'rgba(6, 182, 212, 1)'],     // Cyan
+                ['rgba(59, 130, 246, 0.8)', 'rgba(59, 130, 246, 1)'],   // Biru
+                ['rgba(99, 102, 241, 0.8)', 'rgba(99, 102, 241, 1)'],   // Nila (Indigo)
+                ['rgba(168, 85, 247, 0.8)', 'rgba(168, 85, 247, 1)'],   // Ungu
+                ['rgba(236, 72, 153, 0.8)', 'rgba(236, 72, 153, 1)'],   // Pink
+                ['rgba(244, 63, 94, 0.8)', 'rgba(244, 63, 94, 1)']      // Rose
+            ];
+
+            const backgroundColors = [];
+            const borderColors = [];
+
+            // Memasangkan warna pada masing-masing label berulang sesuai jumlah data
+            labels.forEach((_, index) => {
+                const color = colorPalette[index % colorPalette.length];
+                backgroundColors.push(color[0]);
+                borderColors.push(color[1]);
+            });
+
+            chartInstances[instanceKey] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 2, // Slightly thicker border
+                        borderRadius: 8, // Rounded bar tops
+                        hoverBackgroundColor: borderColors, // Highlight on hover
+                        maxBarThickness: 60 // Prevents giant bars if data is small
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 40, // Ruang ekstra agar angka paling atas tidak terpotong
+                            right: 20,
+                            left: 10
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            offset: 4, // Jarak angka dari ujung batang
+                            color: function(context) {
+                                // Samakan warna angka dengan warna border batangnya
+                                return context.dataset.borderColor[context.dataIndex];
+                            }, 
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 12,
+                                weight: 'bold'
+                            },
+                            formatter: function(value) {
+                                // Menampilkan angka dengan pemisah ribuan, sembunyikan jika 0
+                                return value > 0 ? value.toLocaleString('id-ID') : '';
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { size: 14, family: "'Inter', sans-serif" },
+                            bodyFont: { size: 13, family: "'Inter', sans-serif" },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Capaian Total: ' + context.parsed.y.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grace: '10%', // Memberikan margin 10% tambahan ke atas batas nilai maksimal
+                            grid: {
+                                color: 'rgba(226, 232, 240, 0.8)',
+                                drawBorder: false,
+                                borderDash: [5, 5] // Grid putus-putus estetis
+                            },
+                            ticks: { 
+                                precision: 0,
+                                font: { family: "'Inter', sans-serif", size: 12 },
+                                padding: 10
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                autoSkip: false, // Force show all labels if possible
+                                maxRotation: 90,  // Memutar ke 90 derajat jika nama sangat panjang
+                                minRotation: 45,  // Rotasi default
+                                font: { family: "'Inter', sans-serif", size: 12 },
+                                // Perluas toleransi karakter agar keseluruhan nama lebih mudah terlihat
+                                callback: function(value) {
+                                    const lbl = this.getLabelForValue(value);
+                                    return lbl.length > 50 ? lbl.substr(0, 50) + '...' : lbl;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        function renderTable(sd, smp, sma) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; // Clear existing rows
+            
+            let rowNumber = 1;
+            
+            // Helper function to append rows
+            function appendRows(dataObj, category, badgeColorClass) {
+                for (const [schoolName, total] of Object.entries(dataObj)) {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-3 px-6 border-b border-slate-100 text-slate-500">${rowNumber++}</td>
+                        <td class="py-3 px-6 border-b border-slate-100 font-medium text-slate-800">${schoolName}</td>
+                        <td class="py-3 px-6 border-b border-slate-100 text-center">
+                            <span class="${badgeColorClass} text-xs font-semibold px-2 py-1 rounded-md inline-block">${category}</span>
+                        </td>
+                        <td class="py-3 px-6 border-b border-slate-100 text-right font-semibold text-slate-700">${total.toLocaleString('id-ID')}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+
+            appendRows(sd, 'SD / MI (1-6)', 'bg-red-100 text-red-700');
+            appendRows(smp, 'SMP / MTS (7-9)', 'bg-blue-100 text-blue-700');
+            appendRows(sma, 'SMA / SMK (10-12)', 'bg-slate-200 text-slate-700');
+
+            if (rowNumber === 1) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Tidak ada data yang valid ditemukan.</td></tr>`;
+            }
+        }
+
+        function showLoading() {
+            loadingIndicator.classList.remove('hidden');
+            dashboardContainer.classList.add('hidden');
+        }
+
+        function hideLoading() {
+            loadingIndicator.classList.add('hidden');
+        }
+
+        function showError(message) {
+            notificationText.textContent = message;
+            notification.classList.remove('hidden');
+        }
+
+        function closeNotification() {
+            notification.classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
