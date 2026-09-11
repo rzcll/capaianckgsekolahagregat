@@ -3,248 +3,488 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekapitulasi Data Sekolah</title>
+    <title>Rekapitulasi Data Sekolah - Dashboard</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            DEFAULT: '#0B192C',
+                            light: '#1A365D',
+                            lighter: '#2A4A7F',
+                            dark: '#040F1A',
+                        },
+                        cream: {
+                            DEFAULT: '#FDF7E4',
+                            dark: '#EAE1C8',
+                            light: '#FFFFFF',
+                        },
+                        gold: {
+                            DEFAULT: '#D4AF37',
+                            light: '#F4D03F'
+                        }
+                    },
+                    boxShadow: {
+                        'float': '0 10px 30px -5px rgba(11, 25, 44, 0.08)',
+                        'float-lg': '0 20px 40px -10px rgba(11, 25, 44, 0.15)',
+                        'glow-navy': '0 10px 25px -5px rgba(11, 25, 44, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: #FDF7E4; /* Cream Background */
         }
+        
+        /* Glassmorphism Upload Area */
         .upload-area {
-            border: 2px dashed #cbd5e1;
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px dashed rgba(212, 175, 55, 0.6); /* Gold dashed border */
+            box-shadow: 0 12px 35px -5px rgba(11, 25, 44, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .upload-area:hover {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #0B192C; /* Navy border on hover */
+            background: rgba(255, 255, 255, 0.65);
+            box-shadow: 0 25px 50px -12px rgba(11, 25, 44, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+            transform: translateY(-5px);
+        }
+
+        /* Glassmorphism Header */
+        header {
+            background: rgba(11, 25, 44, 0.95); /* Navy transparent */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FDF7E4; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1A365D; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0B192C; 
+        }
+
+        /* Tab Transitions */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card Hover Effects */
+        .stat-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(11, 25, 44, 0.2);
+        }
+        
+        /* Floating Chart Container */
+        .chart-container {
+            transition: all 0.4s ease;
+        }
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 45px -10px rgba(11, 25, 44, 0.15);
         }
     </style>
 </head>
-<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="text-navy antialiased min-h-screen flex flex-col">
 
-    <header class="bg-white shadow-sm sticky top-0 z-10">
+    <header class="border-b border-navy-dark sticky top-0 z-50 shadow-float">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg">
+            <div class="flex items-center gap-4">
+                <div class="bg-gradient-to-br from-gold to-yellow-600 text-navy-dark p-2.5 rounded-xl shadow-lg shadow-gold/20">
                     <i class="fa-solid fa-school text-xl"></i>
                 </div>
-                <h1 class="text-xl font-bold text-slate-800">Rekapitulasi Data Sekolah</h1>
+                <div>
+                    <h1 class="text-xl font-extrabold text-cream-light tracking-tight">EduData <span class="text-gold">Analytics</span></h1>
+                    <p class="text-xs text-cream-dark font-medium hidden sm:block">Sistem Rekapitulasi Capaian Sekolah</p>
+                </div>
             </div>
-            <div class="text-sm text-slate-500 font-medium hidden sm:block">
-                Sistem Analisis Capaian
+            <div class="flex items-center gap-3">
+                <div class="text-right hidden sm:block">
+                    <p id="periodeLabel" class="text-sm font-semibold text-cream-light">Periode Data</p>
+                    <p id="periodeDisplay" class="text-xs text-gold">Menunggu Upload...</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-navy-light border-2 border-gold shadow-glow-navy flex items-center justify-center text-cream">
+                    <i class="fa-solid fa-user"></i>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
         
         <!-- Notification Banner -->
-        <div id="notification" class="hidden mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 shadow-sm">
-            <i class="fa-solid fa-circle-exclamation text-red-500 mt-0.5"></i>
+        <div id="notification" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 flex items-start gap-3 shadow-sm transition-all">
+            <div class="bg-red-100 rounded-full p-1.5 flex-shrink-0 mt-0.5">
+                <i class="fa-solid fa-circle-exclamation text-red-500 text-sm"></i>
+            </div>
             <div class="flex-grow">
-                <h3 class="text-sm font-semibold text-red-800">Perhatian</h3>
+                <h3 class="text-sm font-bold text-red-800">Gagal Memproses Data</h3>
                 <p id="notificationText" class="text-sm text-red-600 mt-1"></p>
             </div>
-            <button onclick="closeNotification()" class="text-red-400 hover:text-red-600">
-                <i class="fa-solid fa-xmark"></i>
+            <button onclick="closeNotification()" class="text-red-400 hover:text-red-600 bg-red-100 hover:bg-red-200 rounded-full p-1 transition-colors">
+                <i class="fa-solid fa-xmark w-4 h-4 flex items-center justify-center"></i>
             </button>
         </div>
 
         <!-- Upload Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-8 mb-8 text-center upload-area relative overflow-hidden">
+        <div class="rounded-3xl p-10 mb-10 text-center upload-area relative overflow-hidden group">
             <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="Klik atau tarik file ke sini">
             
-            <div class="pointer-events-none">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 text-blue-500 mb-4">
-                    <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+            <div class="pointer-events-none relative z-0 flex flex-col items-center justify-center py-4">
+                <!-- Glassmorphism Icon Container -->
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white/50 backdrop-blur-md border border-white/80 text-navy mb-6 group-hover:scale-110 group-hover:bg-navy group-hover:border-navy group-hover:text-gold transition-all duration-500 shadow-[0_8px_20px_-6px_rgba(11,25,44,0.2)]">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl group-hover:-translate-y-1 transition-transform duration-500"></i>
                 </div>
-                <h2 class="text-lg font-semibold text-slate-700 mb-2">Upload File Rekapitulasi</h2>
-                <p class="text-sm text-slate-500 mb-4 max-w-md mx-auto">Tarik & lepas file Excel Anda ke sini, atau klik area ini untuk memilih file dari perangkat Anda.</p>
-                <div class="flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
-                    <span class="bg-slate-100 px-2 py-1 rounded">.xlsx</span>
-                    <span class="bg-slate-100 px-2 py-1 rounded">.xls</span>
-                    <span class="bg-slate-100 px-2 py-1 rounded">.csv</span>
+                <h2 class="text-2xl font-bold text-navy mb-3">Unggah Data Rekapitulasi</h2>
+                <p class="text-sm text-navy-light mb-8 max-w-md mx-auto">Tarik & lepas file Excel (.xlsx, .xls, .csv) Anda ke area ini, atau klik untuk menelusuri file dari perangkat.</p>
+                <div class="flex items-center justify-center gap-4">
+                    <span class="bg-white/80 backdrop-blur-sm text-navy-light text-xs font-bold px-4 py-2 rounded-lg shadow-sm border border-white"><i class="fa-regular fa-file-excel mr-2 text-emerald-600"></i> .xlsx</span>
+                    <span class="bg-white/80 backdrop-blur-sm text-navy-light text-xs font-bold px-4 py-2 rounded-lg shadow-sm border border-white"><i class="fa-regular fa-file-excel mr-2 text-emerald-600"></i> .xls</span>
+                    <span class="bg-white/80 backdrop-blur-sm text-navy-light text-xs font-bold px-4 py-2 rounded-lg shadow-sm border border-white"><i class="fa-solid fa-file-csv mr-2 text-blue-600"></i> .csv</span>
                 </div>
-                <p id="fileNameDisplay" class="mt-4 text-sm font-semibold text-blue-600"></p>
+                <div id="fileProcessingContainer" class="hidden mt-8 flex items-center gap-3 bg-navy text-cream px-6 py-3 rounded-xl shadow-glow-navy">
+                    <i class="fa-solid fa-spinner fa-spin text-gold"></i>
+                    <p id="fileNameDisplay" class="text-sm font-semibold"></p>
+                </div>
             </div>
         </div>
 
         <!-- Loading Indicator -->
-        <div id="loadingIndicator" class="hidden py-12 flex flex-col items-center justify-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <p class="text-slate-500 font-medium animate-pulse">Memproses data sekolah, mohon tunggu...</p>
+        <div id="loadingIndicator" class="hidden py-20 flex flex-col items-center justify-center">
+            <div class="relative w-20 h-20 mb-6">
+                <div class="absolute inset-0 border-4 border-cream-dark rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-navy rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <h3 class="text-xl font-bold text-navy">Menganalisis Data...</h3>
+            <p class="text-navy-light text-sm mt-2">Sistem sedang mengkalkulasi capaian per tingkat sekolah.</p>
         </div>
 
         <!-- Dashboard Container -->
-        <div id="dashboardContainer" class="hidden space-y-8">
+        <div id="dashboardContainer" class="hidden">
             
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- SD Card -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center gap-4 border-l-4 border-l-red-500">
-                    <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
-                        <i class="fa-solid fa-child text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-medium text-slate-500">Total SD/MI</h3>
-                        <p id="countSD" class="text-2xl font-bold text-slate-800">0 Sekolah</p>
-                    </div>
-                </div>
-                
-                <!-- SMP Card -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center gap-4 border-l-4 border-l-blue-500">
-                    <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
-                        <i class="fa-solid fa-user-graduate text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-medium text-slate-500">Total SMP/MTS</h3>
-                        <p id="countSMP" class="text-2xl font-bold text-slate-800">0 Sekolah</p>
-                    </div>
-                </div>
-                
-                <!-- SMA Card -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center gap-4 border-l-4 border-l-slate-600">
-                    <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0">
-                        <i class="fa-solid fa-graduation-cap text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-medium text-slate-500">Total SMA/SMK/MA</h3>
-                        <p id="countSMA" class="text-2xl font-bold text-slate-800">0 Sekolah</p>
-                    </div>
+            <!-- Floating Navigation Menu -->
+            <div class="flex justify-center w-full relative z-20 mb-12">
+                <div class="bg-white/70 backdrop-blur-xl rounded-full shadow-float border border-cream-dark p-2.5 inline-flex flex-wrap sm:flex-nowrap justify-center gap-3 transition-all">
+                    <!-- Tab Ringkasan -->
+                    <button onclick="switchTab('overview')" id="tabBtn-overview" class="tab-btn active px-8 py-3.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 bg-navy text-cream shadow-glow-navy transform scale-105">
+                        <i class="fa-solid fa-layer-group"></i> Ringkasan
+                    </button>
+                    <!-- Tab Grafik -->
+                    <button onclick="switchTab('charts')" id="tabBtn-charts" class="tab-btn px-8 py-3.5 rounded-full text-sm font-semibold text-navy hover:bg-cream-dark/50 flex items-center justify-center gap-2 transition-all duration-300">
+                        <i class="fa-solid fa-chart-column"></i> Analisis Grafik
+                    </button>
+                    <!-- Tab Tabel -->
+                    <button onclick="switchTab('table')" id="tabBtn-table" class="tab-btn px-8 py-3.5 rounded-full text-sm font-semibold text-navy hover:bg-cream-dark/50 flex items-center justify-center gap-2 transition-all duration-300">
+                        <i class="fa-solid fa-table-list"></i> Tabel Data
+                    </button>
                 </div>
             </div>
 
-            <!-- Charts Area -->
-            <div class="grid grid-cols-1 gap-8">
+            <!-- TAB 1: OVERVIEW -->
+            <div id="tab-overview" class="tab-content active space-y-8">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- SD Card -->
+                    <div class="stat-card bg-cream-light rounded-3xl shadow-float border border-cream-dark p-8 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-navy/5 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                        <div class="flex justify-between items-start mb-6 relative z-10">
+                            <div>
+                                <h3 class="text-xs font-bold text-navy-light uppercase tracking-widest">Total SD / MI</h3>
+                                <p id="countSD" class="text-4xl font-extrabold text-navy mt-2">0</p>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-navy flex items-center justify-center text-gold shadow-lg shadow-navy/30">
+                                <i class="fa-solid fa-child text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-sm font-semibold text-navy-lighter flex items-center gap-2 border-t border-cream-dark pt-4">
+                            <i class="fa-solid fa-circle-check text-gold"></i> Kelas 1 hingga 6
+                        </div>
+                    </div>
+                    
+                    <!-- SMP Card -->
+                    <div class="stat-card bg-cream-light rounded-3xl shadow-float border border-cream-dark p-8 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-navy/5 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                        <div class="flex justify-between items-start mb-6 relative z-10">
+                            <div>
+                                <h3 class="text-xs font-bold text-navy-light uppercase tracking-widest">Total SMP / MTS</h3>
+                                <p id="countSMP" class="text-4xl font-extrabold text-navy mt-2">0</p>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-navy-light flex items-center justify-center text-cream shadow-lg shadow-navy-light/30">
+                                <i class="fa-solid fa-user-graduate text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-sm font-semibold text-navy-lighter flex items-center gap-2 border-t border-cream-dark pt-4">
+                            <i class="fa-solid fa-circle-check text-gold"></i> Kelas 7 hingga 9
+                        </div>
+                    </div>
+                    
+                    <!-- SMA Card -->
+                    <div class="stat-card bg-cream-light rounded-3xl shadow-float border border-cream-dark p-8 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-navy/5 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                        <div class="flex justify-between items-start mb-6 relative z-10">
+                            <div>
+                                <h3 class="text-xs font-bold text-navy-light uppercase tracking-widest">Total SMA / SMK</h3>
+                                <p id="countSMA" class="text-4xl font-extrabold text-navy mt-2">0</p>
+                            </div>
+                            <div class="w-14 h-14 rounded-2xl bg-gold flex items-center justify-center text-navy shadow-lg shadow-gold/30">
+                                <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-sm font-semibold text-navy-lighter flex items-center gap-2 border-t border-cream-dark pt-4">
+                            <i class="fa-solid fa-circle-check text-navy"></i> Kelas 10 hingga 12
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Insight -->
+                <div class="bg-gradient-to-r from-navy to-navy-light rounded-3xl p-8 text-cream-light shadow-float-lg flex flex-col sm:flex-row items-center justify-between gap-6 border border-navy-lighter">
+                    <div class="flex items-center gap-5">
+                        <div class="w-12 h-12 rounded-full bg-gold/20 flex items-center justify-center text-gold shrink-0">
+                            <i class="fa-solid fa-lightbulb text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-xl text-cream-light">Proses Analisis Selesai</h3>
+                            <p class="text-cream-dark text-sm mt-1">Pilih menu "Analisis Grafik" atau "Tabel Data" untuk melihat rincian capaian per sekolah.</p>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('charts')" class="px-6 py-3 bg-gold text-navy text-sm font-bold rounded-xl hover:bg-yellow-400 transition-colors shadow-lg shadow-gold/20 whitespace-nowrap">
+                        Lihat Grafik <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 2: CHARTS -->
+            <div id="tab-charts" class="tab-content space-y-10">
                 <!-- SD Chart -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-1">Grafik Capaian SD/MI</h3>
-                    <p class="text-xs text-slate-500 mb-4">Total capaian tiap sekolah (Kelas 1-6)</p>
+                <div class="chart-container bg-cream-light rounded-3xl shadow-float border border-cream-dark p-6 lg:p-8 flex flex-col">
+                    <div class="flex justify-between items-center mb-8 border-b border-cream-dark pb-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-navy">Perbandingan Capaian SD/MI</h3>
+                            <p class="text-sm font-medium text-navy-light mt-1">Visualisasi total capaian dari kelas 1 hingga 6</p>
+                        </div>
+                        <div class="hidden sm:flex w-12 h-12 rounded-xl bg-navy/10 text-navy items-center justify-center">
+                            <i class="fa-solid fa-chart-simple text-xl"></i>
+                        </div>
+                    </div>
                     <div class="flex-grow min-h-[450px] w-full relative">
                         <canvas id="sdChart"></canvas>
                     </div>
                 </div>
                 
                 <!-- SMP Chart -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-1">Grafik Capaian SMP/MTS</h3>
-                    <p class="text-xs text-slate-500 mb-4">Total capaian tiap sekolah (Kelas 7-9)</p>
+                <div class="chart-container bg-cream-light rounded-3xl shadow-float border border-cream-dark p-6 lg:p-8 flex flex-col">
+                    <div class="flex justify-between items-center mb-8 border-b border-cream-dark pb-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-navy">Perbandingan Capaian SMP/MTS</h3>
+                            <p class="text-sm font-medium text-navy-light mt-1">Visualisasi total capaian dari kelas 7 hingga 9</p>
+                        </div>
+                        <div class="hidden sm:flex w-12 h-12 rounded-xl bg-navy/10 text-navy items-center justify-center">
+                            <i class="fa-solid fa-chart-simple text-xl"></i>
+                        </div>
+                    </div>
                     <div class="flex-grow min-h-[450px] w-full relative">
                         <canvas id="smpChart"></canvas>
                     </div>
                 </div>
                 
                 <!-- SMA Chart -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-1">Grafik Capaian SMA/SMK</h3>
-                    <p class="text-xs text-slate-500 mb-4">Total capaian tiap sekolah (Kelas 10-12)</p>
+                <div class="chart-container bg-cream-light rounded-3xl shadow-float border border-cream-dark p-6 lg:p-8 flex flex-col">
+                    <div class="flex justify-between items-center mb-8 border-b border-cream-dark pb-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-navy">Perbandingan Capaian SMA/SMK/MA</h3>
+                            <p class="text-sm font-medium text-navy-light mt-1">Visualisasi total capaian dari kelas 10 hingga 12</p>
+                        </div>
+                        <div class="hidden sm:flex w-12 h-12 rounded-xl bg-navy/10 text-navy items-center justify-center">
+                            <i class="fa-solid fa-chart-simple text-xl"></i>
+                        </div>
+                    </div>
                     <div class="flex-grow min-h-[450px] w-full relative">
                         <canvas id="smaChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Data Table -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-800">Rincian Data Sekolah</h3>
-                        <p class="text-sm text-slate-500">Daftar lengkap capaian yang diekstrak dari file</p>
+            <!-- TAB 3: TABLE -->
+            <div id="tab-table" class="tab-content">
+                <div class="bg-cream-light rounded-3xl shadow-float border border-cream-dark overflow-hidden">
+                    <div class="px-8 py-6 border-b border-cream-dark bg-cream-light flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-navy">Database Rincian Sekolah</h3>
+                            <p class="text-sm text-navy-light mt-1 font-medium">Daftar lengkap capaian yang diekstrak dan diurutkan</p>
+                        </div>
+                        <button class="px-5 py-2.5 border-2 border-navy text-navy bg-transparent hover:bg-navy hover:text-cream rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-download"></i> Ekspor Data
+                        </button>
                     </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-white text-slate-500 text-xs uppercase tracking-wider">
-                                <th class="py-3 px-6 font-medium border-b border-slate-100 w-16">No</th>
-                                <th class="py-3 px-6 font-medium border-b border-slate-100">Nama Sekolah</th>
-                                <th class="py-3 px-6 font-medium border-b border-slate-100 w-40 text-center">Tingkat</th>
-                                <th class="py-3 px-6 font-medium border-b border-slate-100 text-right w-48">Total Capaian</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody" class="text-sm divide-y divide-slate-100">
-                            <!-- Rows will be injected here -->
-                        </tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-navy text-cream text-xs uppercase tracking-widest font-bold">
+                                    <th class="py-5 px-8 w-20">No</th>
+                                    <th class="py-5 px-8">Nama Sekolah</th>
+                                    <th class="py-5 px-8 w-56 text-center">Tingkat Pendidikan</th>
+                                    <th class="py-5 px-8 text-right w-56">Total Capaian</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="text-sm divide-y divide-cream-dark bg-white">
+                                <!-- Rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             
         </div>
     </main>
 
-    <footer class="bg-slate-50 border-t border-slate-200 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-slate-500">
-            &copy; 2026 Rekapitulasi Data Sekolah.
+    <footer class="bg-navy border-t border-navy-dark mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-sm font-medium text-cream-dark">
+                &copy; 2026 EduData Analytics. All rights reserved.
+            </p>
+            <div class="flex gap-6 text-cream-dark">
+                <a href="#" class="hover:text-gold transition-colors font-medium"><i class="fa-solid fa-shield-halved mr-1"></i> Privasi</a>
+                <a href="#" class="hover:text-gold transition-colors font-medium"><i class="fa-solid fa-circle-info mr-1"></i> Bantuan</a>
+            </div>
         </div>
     </footer>
 
     <script>
-        // Registrasi plugin DataLabels agar angka muncul di grafik
+        // Registrasi plugin DataLabels
         Chart.register(ChartDataLabels);
 
-        // Chart instances
-        let chartInstances = {
-            sd: null,
-            smp: null,
-            sma: null
-        };
+        // State & Variabel
+        let chartInstances = { sd: null, smp: null, sma: null };
+        let fileInput, fileNameDisplay, loadingIndicator, dashboardContainer, notification, notificationText, fileProcessingContainer;
+        let periodeLabel, periodeDisplay;
 
-        // DOM Elements (Variables declared globally)
-        let fileInput, fileNameDisplay, loadingIndicator, dashboardContainer, notification, notificationText;
-
-        // Initialize DOM elements and attach event listeners after the HTML is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
             fileInput = document.getElementById('excelFile');
             fileNameDisplay = document.getElementById('fileNameDisplay');
+            fileProcessingContainer = document.getElementById('fileProcessingContainer');
             loadingIndicator = document.getElementById('loadingIndicator');
             dashboardContainer = document.getElementById('dashboardContainer');
             notification = document.getElementById('notification');
             notificationText = document.getElementById('notificationText');
+            periodeLabel = document.getElementById('periodeLabel');
+            periodeDisplay = document.getElementById('periodeDisplay');
 
-            // Event Listener for File Upload
             if (fileInput) {
                 fileInput.addEventListener('change', handleFileUpload);
-            } else {
-                console.error("Elemen 'excelFile' belum tersedia di HTML.");
             }
         });
+
+        // Tab Switching Logic adapted for Navy theme
+        function switchTab(tabId) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Base classes for inactive tabs
+            const defaultClasses = "tab-btn px-8 py-3.5 rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 text-navy hover:bg-cream-dark/50";
+            
+            // Reset all buttons styling
+            document.getElementById('tabBtn-overview').className = defaultClasses;
+            document.getElementById('tabBtn-charts').className = defaultClasses;
+            document.getElementById('tabBtn-table').className = defaultClasses;
+
+            // Show active content
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            // Apply Navy shadow styling for active tab
+            const activeBtn = document.getElementById(`tabBtn-${tabId}`);
+            activeBtn.className = "tab-btn active px-8 py-3.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 bg-navy text-cream shadow-glow-navy transform scale-105";
+        }
 
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Validate file type
             const validExts = ['.xlsx', '.xls', '.csv'];
             const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
             if (!validExts.includes(fileExt)) {
-                showError("Format file tidak didukung. Harap upload file Excel (.xlsx atau .xls).");
+                showError("Format file tidak didukung. Harap upload file Excel (.xlsx, .xls) atau .csv.");
                 return;
             }
 
-            fileNameDisplay.textContent = `Memproses: ${file.name}`;
+            const monthNames = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
+            let matchedMonth = null;
+            const lowerFileName = file.name.toLowerCase();
+
+            for (let month of monthNames) {
+                if (lowerFileName.includes(month)) {
+                    // Huruf pertama kapital untuk estetika
+                    matchedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+                    break;
+                }
+            }
+
+            // Memperbarui UI di header
+            if (periodeDisplay && periodeLabel) {
+                if (matchedMonth) {
+                    periodeLabel.textContent = "Periode Bulan";
+                    periodeDisplay.textContent = matchedMonth;
+                } else {
+                    periodeLabel.textContent = "Periode Data";
+                    periodeDisplay.textContent = "Rekapan CKG Sekolah";
+                }
+            }
+
+            fileProcessingContainer.classList.remove('hidden');
+            fileNameDisplay.textContent = file.name;
             closeNotification();
             showLoading();
 
             const reader = new FileReader();
-            
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
-                // Use a small timeout to allow UI to render the loading state
                 setTimeout(() => {
                     processExcelData(data);
-                }, 100);
+                }, 400); 
             };
-            
             reader.onerror = function() {
                 showError("Terjadi kesalahan saat membaca file. Silakan coba lagi.");
                 hideLoading();
+                fileProcessingContainer.classList.add('hidden');
             };
 
             reader.readAsArrayBuffer(file);
@@ -252,72 +492,47 @@
 
         function parseGradeLevel(rawGrade) {
             if (rawGrade === undefined || rawGrade === null) return 0;
-            
             let str = String(rawGrade).toUpperCase().trim();
-            
-            // Extract numeric digits if they exist (e.g. "Kelas 10", "12 IPA")
             const digitsMatch = str.match(/\d+/);
-            if (digitsMatch) {
-                return parseInt(digitsMatch[0], 10);
-            }
-
-            // Fallback for Roman Numerals commonly used in Indonesia
+            if (digitsMatch) return parseInt(digitsMatch[0], 10);
             str = str.replace(/KELAS|KLS/g, '').trim();
-            
-            // Map of Roman numerals to integers (Reverse order to match XII before X)
             const romanMap = {
                 'XII': 12, 'XI': 11, 'X': 10, 'IX': 9, 'VIII': 8, 'VII': 7,
                 'VI': 6, 'V': 5, 'IV': 4, 'III': 3, 'II': 2, 'I': 1
             };
-
             for (const [roman, num] of Object.entries(romanMap)) {
-                // Exact match or starts/ends with spaces to avoid "V" matching inside another word
                 if (str === roman || str.startsWith(roman + ' ') || str.includes(' ' + roman + ' ') || str.endsWith(' ' + roman)) {
                     return num;
                 }
             }
-
-            return 0; // Return 0 if class level cannot be determined
+            return 0;
         }
 
         function processExcelData(data) {
             try {
-                // Parse Excel file using SheetJS
                 const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Get first sheet
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Convert to array of arrays, header: 1 guarantees 2D array format
                 const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // Data structures for aggregation
-                const sdData = {};  // Kategori Kelas 1-6
-                const smpData = {}; // Kategori Kelas 7-9
-                const smaData = {}; // Kategori Kelas 10-12
+                const sdData = {};  
+                const smpData = {}; 
+                const smaData = {}; 
 
-                // Process starting from index 1 (Baris ke-2 di Excel)
                 for (let i = 1; i < rows.length; i++) {
                     const row = rows[i];
-                    if (!row || row.length === 0) continue; // Skip empty rows
+                    if (!row || row.length === 0) continue;
 
-                    // Kolom I (Index 8), Kolom J (Index 9), Kolom K (Index 10)
                     const schoolNameRaw = row[8];
                     const gradeRaw = row[9];
                     let valueK = parseFloat(row[10]);
 
-                    // Validation: Skip if school name is missing
-                    if (schoolNameRaw === undefined || schoolNameRaw === null || String(schoolNameRaw).trim() === "") {
-                        continue; 
-                    }
+                    if (schoolNameRaw === undefined || schoolNameRaw === null || String(schoolNameRaw).trim() === "") continue; 
 
-                    // Format values
                     const schoolName = String(schoolNameRaw).trim();
                     const gradeNum = parseGradeLevel(gradeRaw);
-                    if (isNaN(valueK)) valueK = 0; // Default to 0 if K is empty/invalid
+                    if (isNaN(valueK)) valueK = 0; 
 
-                    // Grouping and aggregating logic
                     if (gradeNum >= 1 && gradeNum <= 6) {
                         sdData[schoolName] = (sdData[schoolName] || 0) + valueK;
                     } else if (gradeNum >= 7 && gradeNum <= 9) {
@@ -327,52 +542,67 @@
                     }
                 }
 
-                // Render UI
                 renderDashboard(sdData, smpData, smaData);
                 hideLoading();
+                
+                setTimeout(() => {
+                    fileProcessingContainer.classList.add('hidden');
+                }, 2000);
 
             } catch (error) {
                 console.error(error);
                 showError("Gagal mengurai isi file Excel. Pastikan format kolom sesuai (I=Nama, J=Kelas, K=Angka).");
                 hideLoading();
+                fileProcessingContainer.classList.add('hidden');
             }
         }
 
         function renderDashboard(sd, smp, sma) {
             dashboardContainer.classList.remove('hidden');
+            switchTab('overview'); 
 
-            // Mengurutkan data dari tertinggi ke terendah
-            const sortDataDesc = (obj) => {
-                return Object.fromEntries(
-                    Object.entries(obj).sort(([, a], [, b]) => b - a)
-                );
-            };
-
+            const sortDataDesc = (obj) => Object.fromEntries(Object.entries(obj).sort(([, a], [, b]) => b - a));
             const sortedSD = sortDataDesc(sd);
             const sortedSMP = sortDataDesc(smp);
             const sortedSMA = sortDataDesc(sma);
 
-            // Update Summary Counters
-            document.getElementById('countSD').textContent = `${Object.keys(sortedSD).length} Sekolah`;
-            document.getElementById('countSMP').textContent = `${Object.keys(sortedSMP).length} Sekolah`;
-            document.getElementById('countSMA').textContent = `${Object.keys(sortedSMA).length} Sekolah`;
+            animateValue("countSD", 0, Object.keys(sortedSD).length, 1000);
+            animateValue("countSMP", 0, Object.keys(sortedSMP).length, 1000);
+            animateValue("countSMA", 0, Object.keys(sortedSMA).length, 1000);
 
-            // Draw Charts with colorful and sorted data
             drawChart('sdChart', 'Capaian Total SD/MI', sortedSD, 'sd');
             drawChart('smpChart', 'Capaian Total SMP/MTS', sortedSMP, 'smp');
             drawChart('smaChart', 'Capaian Total SMA/MA/SMK', sortedSMA, 'sma');
 
-            // Render Table with sorted data
             renderTable(sortedSD, sortedSMP, sortedSMA);
             
-            // Smooth scroll to dashboard
-            dashboardContainer.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                document.querySelector('main').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end) {
+                document.getElementById(id).textContent = end;
+                return;
+            }
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                document.getElementById(id).textContent = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    document.getElementById(id).textContent = end;
+                }
+            };
+            window.requestAnimationFrame(step);
         }
 
         function drawChart(canvasId, label, dataObj, instanceKey) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             
-            // Destroy existing chart if it exists (for re-uploads)
             if (chartInstances[instanceKey]) {
                 chartInstances[instanceKey].destroy();
             }
@@ -380,37 +610,34 @@
             const labels = Object.keys(dataObj);
             const data = Object.values(dataObj);
 
-            // Handle empty data state elegantly
             if (labels.length === 0) {
                 labels.push("Tidak ada data");
                 data.push(0);
             }
 
-            // Palet warna warni cerah yang menarik
+            // Elegant Navy, Gold, & Cream Palette
             const colorPalette = [
-                ['rgba(239, 68, 68, 0.8)', 'rgba(239, 68, 68, 1)'],     // Merah
-                ['rgba(249, 115, 22, 0.8)', 'rgba(249, 115, 22, 1)'],   // Oranye
-                ['rgba(234, 179, 8, 0.8)', 'rgba(234, 179, 8, 1)'],     // Kuning
-                ['rgba(132, 204, 22, 0.8)', 'rgba(132, 204, 22, 1)'],   // Lime
-                ['rgba(34, 197, 94, 0.8)', 'rgba(34, 197, 94, 1)'],     // Hijau
-                ['rgba(20, 184, 166, 0.8)', 'rgba(20, 184, 166, 1)'],   // Teal
-                ['rgba(6, 182, 212, 0.8)', 'rgba(6, 182, 212, 1)'],     // Cyan
-                ['rgba(59, 130, 246, 0.8)', 'rgba(59, 130, 246, 1)'],   // Biru
-                ['rgba(99, 102, 241, 0.8)', 'rgba(99, 102, 241, 1)'],   // Nila (Indigo)
-                ['rgba(168, 85, 247, 0.8)', 'rgba(168, 85, 247, 1)'],   // Ungu
-                ['rgba(236, 72, 153, 0.8)', 'rgba(236, 72, 153, 1)'],   // Pink
-                ['rgba(244, 63, 94, 0.8)', 'rgba(244, 63, 94, 1)']      // Rose
+                { start: '#0B192C', end: '#1A365D' },   // Deep Navy
+                { start: '#D4AF37', end: '#F4D03F' },   // Gold
+                { start: '#2A4A7F', end: '#4573B9' },   // Lighter Navy/Blue
+                { start: '#8C7A58', end: '#B39F7A' },   // Bronze/Muted Gold
+                { start: '#192C45', end: '#304763' },   // Slate Navy
             ];
 
             const backgroundColors = [];
             const borderColors = [];
 
-            // Memasangkan warna pada masing-masing label berulang sesuai jumlah data
             labels.forEach((_, index) => {
                 const color = colorPalette[index % colorPalette.length];
-                backgroundColors.push(color[0]);
-                borderColors.push(color[1]);
+                let gradient = ctx.createLinearGradient(0, 0, 0, 450);
+                gradient.addColorStop(0, color.end); 
+                gradient.addColorStop(1, color.start); 
+                
+                backgroundColors.push(gradient);
+                borderColors.push(color.start); 
             });
+
+            const fontFamily = '"Plus Jakarta Sans", sans-serif';
 
             chartInstances[instanceKey] = new Chart(ctx, {
                 type: 'bar',
@@ -421,91 +648,86 @@
                         data: data,
                         backgroundColor: backgroundColors,
                         borderColor: borderColors,
-                        borderWidth: 2, // Slightly thicker border
-                        borderRadius: 8, // Rounded bar tops
-                        hoverBackgroundColor: borderColors, // Highlight on hover
-                        maxBarThickness: 60 // Prevents giant bars if data is small
+                        borderWidth: 0, // Removed border for cleaner look with gradient
+                        borderRadius: { topLeft: 10, topRight: 10, bottomLeft: 0, bottomRight: 0 }, 
+                        hoverBackgroundColor: borderColors, // Solidify on hover
+                        maxBarThickness: 55,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    layout: {
-                        padding: {
-                            top: 40, // Ruang ekstra agar angka paling atas tidak terpotong
-                            right: 20,
-                            left: 10
-                        }
-                    },
+                    layout: { padding: { top: 45, right: 20, left: 10, bottom: 10 } },
                     plugins: {
                         legend: { display: false },
                         datalabels: {
                             anchor: 'end',
                             align: 'end',
-                            offset: 4, // Jarak angka dari ujung batang
-                            color: function(context) {
-                                // Samakan warna angka dengan warna border batangnya
-                                return context.dataset.borderColor[context.dataIndex];
-                            }, 
-                            font: {
-                                family: "'Inter', sans-serif",
-                                size: 12,
-                                weight: 'bold'
+                            offset: 6,
+                            color: '#FDF7E4', // Cream text on labels
+                            backgroundColor: function(context) { 
+                                // Label background matches the base border color (Navy/Gold)
+                                return context.dataset.borderColor[context.dataIndex]; 
                             },
-                            formatter: function(value) {
-                                // Menampilkan angka dengan pemisah ribuan, sembunyikan jika 0
-                                return value > 0 ? value.toLocaleString('id-ID') : '';
-                            }
+                            borderRadius: 8,
+                            padding: { top: 6, bottom: 6, left: 10, right: 10 },
+                            font: { family: fontFamily, size: 12, weight: 'bold' },
+                            formatter: function(value) { return value > 0 ? value.toLocaleString('id-ID') : ''; },
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            titleFont: { size: 14, family: "'Inter', sans-serif" },
-                            bodyFont: { size: 13, family: "'Inter', sans-serif" },
-                            padding: 12,
-                            cornerRadius: 8,
+                            backgroundColor: 'rgba(11, 25, 44, 0.95)', // Navy background
+                            titleColor: '#D4AF37', // Gold title
+                            bodyColor: '#FDF7E4', // Cream text
+                            titleFont: { size: 14, family: fontFamily, weight: 'bold' },
+                            bodyFont: { size: 13, family: fontFamily },
+                            padding: 14,
+                            cornerRadius: 10,
+                            displayColors: true,
+                            usePointStyle: true,
                             callbacks: {
-                                label: function(context) {
-                                    return 'Capaian Total: ' + context.parsed.y.toLocaleString('id-ID');
-                                }
+                                label: function(context) { return 'Capaian: ' + context.parsed.y.toLocaleString('id-ID'); }
                             }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grace: '10%', // Memberikan margin 10% tambahan ke atas batas nilai maksimal
+                            grace: '15%',
                             grid: {
-                                color: 'rgba(226, 232, 240, 0.8)',
+                                color: 'rgba(234, 225, 200, 0.6)', // Cream-dark grid
                                 drawBorder: false,
-                                borderDash: [5, 5] // Grid putus-putus estetis
+                                borderDash: [5, 5]
                             },
                             ticks: { 
-                                precision: 0,
-                                font: { family: "'Inter', sans-serif", size: 12 },
+                                font: { family: fontFamily, size: 12, color: '#1A365D', weight: '600' },
                                 padding: 10
                             }
                         },
                         x: {
-                            grid: {
-                                display: false,
-                                drawBorder: false,
-                            },
+                            grid: { display: false, drawBorder: false },
                             ticks: {
-                                autoSkip: false, // Force show all labels if possible
-                                maxRotation: 90,  // Memutar ke 90 derajat jika nama sangat panjang
-                                minRotation: 45,  // Rotasi default
-                                font: { family: "'Inter', sans-serif", size: 12 },
-                                // Perluas toleransi karakter agar keseluruhan nama lebih mudah terlihat
+                                autoSkip: false,
+                                maxRotation: 45, 
+                                minRotation: 45,
+                                font: { family: fontFamily, size: 12, color: '#1A365D', weight: '600' },
                                 callback: function(value) {
                                     const lbl = this.getLabelForValue(value);
-                                    return lbl.length > 50 ? lbl.substr(0, 50) + '...' : lbl;
+                                    return lbl.length > 25 ? lbl.substr(0, 25) + '...' : lbl;
                                 }
                             }
                         }
                     },
                     animation: {
-                        duration: 1000,
-                        easing: 'easeOutQuart'
+                        duration: 1200,
+                        easing: 'easeOutElastic', 
+                        delay: (context) => {
+                            let delay = 0;
+                            if (context.type === 'data' && context.mode === 'default') {
+                                delay = context.dataIndex * 40; 
+                            }
+                            return delay;
+                        }
                     }
                 }
             });
@@ -513,39 +735,54 @@
 
         function renderTable(sd, smp, sma) {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ''; // Clear existing rows
-            
+            tbody.innerHTML = ''; 
             let rowNumber = 1;
+            let grandTotal = 0; // Variabel penampung total keseluruhan
             
-            // Helper function to append rows
-            function appendRows(dataObj, category, badgeColorClass) {
+            function appendRows(dataObj, category, badgeClasses) {
                 for (const [schoolName, total] of Object.entries(dataObj)) {
+                    grandTotal += total; // Menjumlahkan setiap capaian ke total keseluruhan
+                    
                     const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-slate-50 transition-colors';
+                    tr.className = 'hover:bg-cream transition-colors border-b border-cream-dark last:border-0 group';
                     tr.innerHTML = `
-                        <td class="py-3 px-6 border-b border-slate-100 text-slate-500">${rowNumber++}</td>
-                        <td class="py-3 px-6 border-b border-slate-100 font-medium text-slate-800">${schoolName}</td>
-                        <td class="py-3 px-6 border-b border-slate-100 text-center">
-                            <span class="${badgeColorClass} text-xs font-semibold px-2 py-1 rounded-md inline-block">${category}</span>
+                        <td class="py-5 px-8 text-navy-light font-bold">${rowNumber++}</td>
+                        <td class="py-5 px-8 font-extrabold text-navy group-hover:text-gold transition-colors text-base">${schoolName}</td>
+                        <td class="py-5 px-8 text-center">
+                            <span class="${badgeClasses} text-xs font-bold px-3 py-1.5 rounded-lg inline-block whitespace-nowrap shadow-sm">${category}</span>
                         </td>
-                        <td class="py-3 px-6 border-b border-slate-100 text-right font-semibold text-slate-700">${total.toLocaleString('id-ID')}</td>
+                        <td class="py-5 px-8 text-right font-black text-navy text-base">${total.toLocaleString('id-ID')}</td>
                     `;
                     tbody.appendChild(tr);
                 }
             }
 
-            appendRows(sd, 'SD / MI (1-6)', 'bg-red-100 text-red-700');
-            appendRows(smp, 'SMP / MTS (7-9)', 'bg-blue-100 text-blue-700');
-            appendRows(sma, 'SMA / SMK (10-12)', 'bg-slate-200 text-slate-700');
+            // Custom elegant badges for table
+            appendRows(sd, 'SD / MI (1-6)', 'bg-white text-navy border border-navy-light');
+            appendRows(smp, 'SMP / MTS (7-9)', 'bg-navy-light text-cream border border-navy');
+            appendRows(sma, 'SMA / SMK (10-12)', 'bg-gold text-navy border border-yellow-600');
 
             if (rowNumber === 1) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Tidak ada data yang valid ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-12 text-navy-light bg-white"><i class="fa-solid fa-folder-open text-4xl mb-4 text-cream-dark block"></i> Tidak ada data valid ditemukan.</td></tr>`;
+            } else {
+                // Menambahkan baris Total Keseluruhan di bagian paling bawah tabel
+                const trTotal = document.createElement('tr');
+                trTotal.className = 'bg-cream-dark/30 border-t-2 border-navy shadow-inner';
+                trTotal.innerHTML = `
+                    <td colspan="3" class="py-5 px-8 text-right uppercase tracking-widest text-xs font-black text-navy-light">
+                        Total Keseluruhan Capaian
+                    </td>
+                    <td class="py-5 px-8 text-right font-black text-navy text-xl">
+                        ${grandTotal.toLocaleString('id-ID')}
+                    </td>
+                `;
+                tbody.appendChild(trTotal);
             }
         }
 
         function showLoading() {
-            loadingIndicator.classList.remove('hidden');
             dashboardContainer.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
         }
 
         function hideLoading() {
@@ -560,7 +797,6 @@
         function closeNotification() {
             notification.classList.add('hidden');
         }
-
     </script>
 </body>
 </html>
