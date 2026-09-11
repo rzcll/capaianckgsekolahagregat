@@ -9,6 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <!-- Tambahkan library html2canvas untuk mengubah HTML menjadi Gambar (JPG) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -48,23 +50,33 @@
 
     <style>
         body {
-            background-color: #FDF7E4; /* Cream Background */
+            background-color: #E0F2FE; /* Biru Muda Background */
         }
         
-        /* Glassmorphism Upload Area */
+        /* Glassmorphism Upload Area - Enhanced */
         .upload-area {
-            background: rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 2px dashed rgba(212, 175, 55, 0.6); /* Gold dashed border */
-            box-shadow: 0 12px 35px -5px rgba(11, 25, 44, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.15) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 2px dashed rgba(212, 175, 55, 0.7); /* Emas yang lebih jelas */
+            /* Kombinasi shadow luar yang dalam dan shadow dalam (inset) untuk ketebalan kaca */
+            box-shadow: 
+                0 15px 40px -10px rgba(11, 25, 44, 0.15),
+                inset 0 2px 10px rgba(255, 255, 255, 0.8),
+                inset 0 -2px 10px rgba(11, 25, 44, 0.05);
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
         }
+        
         .upload-area:hover, .upload-area.dragover {
-            border-color: #0B192C; /* Navy border on hover */
-            background: rgba(255, 255, 255, 0.65);
-            box-shadow: 0 25px 50px -12px rgba(11, 25, 44, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
-            transform: translateY(-5px);
+            border-color: #0B192C; 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.25) 100%);
+            /* Shadow membesar dan posisi naik drastis agar terlihat benar-benar melayang */
+            box-shadow: 
+                0 35px 60px -15px rgba(11, 25, 44, 0.3),
+                inset 0 2px 10px rgba(255, 255, 255, 0.9),
+                inset 0 -2px 10px rgba(11, 25, 44, 0.05);
+            transform: translateY(-12px) scale(1.02);
         }
 
         /* Glassmorphism Header */
@@ -80,7 +92,7 @@
             height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #FDF7E4; 
+            background: #E0F2FE; /* Mengikuti background aplikasi biru muda */
         }
         ::-webkit-scrollbar-thumb {
             background: #1A365D; 
@@ -344,18 +356,20 @@
 
             <!-- TAB 3: TABLE -->
             <div id="tab-table" class="tab-content">
-                <div class="bg-cream-light rounded-3xl shadow-float border border-cream-dark overflow-hidden">
+                <!-- Tambahkan ID tableExportContainer untuk target tangkapan gambar -->
+                <div id="tableExportContainer" class="bg-cream-light rounded-3xl shadow-float border border-cream-dark overflow-hidden">
                     <div class="px-8 py-6 border-b border-cream-dark bg-cream-light flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h3 class="text-xl font-bold text-navy">Database Rincian Sekolah</h3>
                             <p class="text-sm text-navy-light mt-1 font-medium">Daftar lengkap capaian yang diekstrak dan diurutkan</p>
                         </div>
-                        <button class="px-5 py-2.5 border-2 border-navy text-navy bg-transparent hover:bg-navy hover:text-cream rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
-                            <i class="fa-solid fa-download"></i> Ekspor Data
+                        <!-- Ubah fungsi onclick dan tambahkan ID exportBtn -->
+                        <button id="exportBtn" onclick="exportTableToJPG()" class="px-5 py-2.5 border-2 border-navy text-navy bg-transparent hover:bg-navy hover:text-cream rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-image"></i> Ekspor JPG
                         </button>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table id="dataTable" class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-navy text-cream text-xs uppercase tracking-widest font-bold">
                                     <th class="py-5 px-8 w-20">No</th>
@@ -447,15 +461,17 @@
             }
 
             const monthNames = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
+            
+            // Mencari semua bulan yang ada di dalam nama file
+            const regexBulan = new RegExp(monthNames.join("|"), "gi");
+            const matches = file.name.match(regexBulan);
+            
             let matchedMonth = null;
-            const lowerFileName = file.name.toLowerCase();
-
-            for (let month of monthNames) {
-                if (lowerFileName.includes(month)) {
-                    // Huruf pertama kapital untuk estetika
-                    matchedMonth = month.charAt(0).toUpperCase() + month.slice(1);
-                    break;
-                }
+            if (matches && matches.length > 0) {
+                // Menghilangkan duplikat nama bulan (jika ada) dan membuat huruf pertama kapital
+                const uniqueMonths = [...new Set(matches.map(m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()))];
+                // Menggabungkan semua bulan yang ditemukan dengan tanda " - "
+                matchedMonth = uniqueMonths.join(" - ");
             }
 
             // Memperbarui UI di header
@@ -796,6 +812,57 @@
 
         function closeNotification() {
             notification.classList.add('hidden');
+        }
+
+        // Fungsi Ekspor Tabel ke File JPG (Sama persis dengan tampilan web)
+        function exportTableToJPG() {
+            const table = document.getElementById('dataTable');
+            const exportContainer = document.getElementById('tableExportContainer');
+            const exportBtn = document.getElementById('exportBtn');
+            
+            // Validasi jika tabel belum terisi data rincian sekolah
+            if (!table || table.rows.length <= 2) { 
+                showError("Tidak ada data yang tersedia untuk diekspor.");
+                return;
+            }
+
+            // Ekstrak nama bulan atau periode dari tampilan untuk nama file
+            let periodeStr = "Rekapan";
+            if (periodeDisplay && periodeDisplay.textContent && periodeDisplay.textContent !== "Menunggu Upload...") {
+                periodeStr = periodeDisplay.textContent.replace(/[^a-zA-Z0-9 -]/g, "").trim();
+            }
+
+            // Sembunyikan tombol ekspor sementara agar tidak ikut terfoto
+            const originalDisplayStyle = exportBtn.style.display;
+            exportBtn.style.display = 'none';
+            
+            // Ubah kursor menjadi loading agar user tahu proses sedang berjalan
+            document.body.style.cursor = 'wait';
+
+            // Gunakan html2canvas untuk memotret container tabel
+            html2canvas(exportContainer, {
+                scale: 2, // Resolusi tinggi agar tulisan tidak pecah
+                backgroundColor: '#FDF7E4', // Warna latar belakang cream-light agar rapi
+                useCORS: true // Membantu memuat font eksternal
+            }).then(canvas => {
+                // Konversi canvas menjadi gambar Data URL format JPG
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                
+                // Proses pengunduhan
+                const link = document.createElement('a');
+                link.download = `Tabel_Capaian_Sekolah_${periodeStr}.jpg`;
+                link.href = imgData;
+                link.click();
+
+                // Kembalikan tombol ekspor dan kursor seperti semula
+                exportBtn.style.display = originalDisplayStyle;
+                document.body.style.cursor = 'default';
+            }).catch(err => {
+                console.error("Gagal mengekspor gambar:", err);
+                showError("Terjadi kesalahan sistem saat mencoba mengambil gambar.");
+                exportBtn.style.display = originalDisplayStyle;
+                document.body.style.cursor = 'default';
+            });
         }
     </script>
 </body>
